@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Prompt Selection</title>
+    <link rel="stylesheet" href="/static/chatbot/styles.css">
+</head>
+<body>
+<div class="main-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">Lack Chat</div>
+        <ul id="prompt-list"></ul>
+        <button id="new-prompt">+ New Prompt</button>
+    </aside>
+
+    <div class="chat-container">
+        <div id="chat-box" class="chat-box"></div>
+        <form id="chat-form" enctype="multipart/form-data">
+            <div class="input-group">
+                <input type="file" id="image" name="image" class="file-input">
+                <input type="text" id="message" name="message" placeholder="Type your message here..." class="text-input">
+                <input type="hidden" id="prompt_id" name="prompt_id">
+                <button type="submit" class="send-btn">Send</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="/static/chatbot/script.js"></script>
+</body>
+</html>
