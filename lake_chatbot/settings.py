@@ -33,7 +33,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'lake_chatbot.urls'
+ROOT_URLCONF = 'hmdaV2.urls'
 
 TEMPLATES = [
     {
@@ -51,7 +51,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'lake_chatbot.wsgi.application'
+WSGI_APPLICATION = 'hmdaV2.wsgi.application'
 
 # Database (use SQLite for local dev)
 DATABASES = {
