@@ -4,11 +4,13 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.core.files.storage import default_storage
+
 import base64
 import requests
+import json
 
 # Replace with your deployed Lambda URL
-LAMBDA_API_URL = 'https://your-lambda-api-url.amazonaws.com/your-path'
+LAMBDA_API_URL = 'https://wkwg5ojnse54vm2ylk6agt3ovq0jswdp.lambda-url.us-east-1.on.aws/'
 
 @csrf_exempt
 def index(request):
@@ -34,7 +36,15 @@ def handle_prompt(request):
             default_storage.delete(temp_path)
 
         # Send request to Lambda
-        response = requests.post(LAMBDA_API_URL, json=payload)
+        #response = requests.post(LAMBDA_API_URL, json=payload)
+        response = requests.post(
+            LAMBDA_API_URL,
+            data=json.dumps({
+                "message": request.POST.get('message'),
+                "prompt_id": prompt_id
+            }),
+            headers={'Content-Type': 'application/json'}
+        )
         return JsonResponse(response.json())
 
     return JsonResponse({'error': 'Only POST method allowed'}, status=405)
