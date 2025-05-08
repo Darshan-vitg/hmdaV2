@@ -176,54 +176,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ---------- map helpers ---------- */
   function appendBotMapButton(coords){
-  const bubble = document.createElement("div");
-  bubble.className = "chat-message bot";
-  bubble.innerHTML = `<p class="map-header">Lake Map</p>
+    const bubble = document.createElement("div");
+    bubble.className = "chat-message bot";
+    bubble.innerHTML = `<p class="map-header">Lake Map</p>
                       <button class="show-map-btn">Show Map</button>
                       <button class="download-csv-btn">Download CSV</button>`;
-  chatBox.appendChild(bubble);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  prompts[currentPromptId] += bubble.outerHTML;
-
-  const btn = bubble.querySelector(".show-map-btn");
-  const csvBtn = bubble.querySelector(".download-csv-btn");
-  let mapContainer = null;
-
-  // Show/Hide map logic
-  btn.addEventListener("click",()=>{
-    if(!mapContainer){
-      mapContainer   = createMapWithCoordinates(coords);
-      bubble.appendChild(mapContainer);
-      btn.textContent = "Hide Map";
-    }else{
-      mapContainer.remove();
-      mapContainer = null;
-      btn.textContent = "Show Map";
-    }
+    chatBox.appendChild(bubble);
     chatBox.scrollTop = chatBox.scrollHeight;
-  });
+    prompts[currentPromptId] += bubble.outerHTML;
 
-  // CSV download logic
-  csvBtn.addEventListener("click", () => {
-    if (coords && coords.length > 0) {
-      const csvContent = "Latitude,Longitude\n" + coords.map(coord => `${coord.lat},${coord.lon}`).join("\n");
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.setAttribute("href", URL.createObjectURL(blob));
-      link.setAttribute("download", "coordinates.csv");
-      link.click();
-    }
-  });
-}
+    const btn = bubble.querySelector(".show-map-btn");
+    const csvBtn = bubble.querySelector(".download-csv-btn");
+    let mapContainer = null;
 
+    // Show/Hide map logic
+    btn.addEventListener("click",()=>{
+      if(!mapContainer){
+        mapContainer   = createMapWithCoordinates(coords);
+        bubble.appendChild(mapContainer);
+        btn.textContent = "Hide Map";
+      }else{
+        mapContainer.remove();
+        mapContainer = null;
+        btn.textContent = "Show Map";
+      }
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    // CSV download logic
+    csvBtn.addEventListener("click", () => {
+      if (coords && coords.length > 0) {
+        const csvContent = "Latitude,Longitude\n" + coords.flatMap(lake => {
+          if (lake.coordinates) {
+            return lake.coordinates.map(c => `${c.lat},${c.lon}`);
+          }
+          return `${lake.lat},${lake.lon}`;
+        }).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", "coordinates.csv");
+        link.click();
+      }
+    });
+  }
 
   function createMapWithCoordinates(coords){
-    const valid = coords.filter(c=>c && typeof c.lat==="number" && typeof c.lon==="number");
-    if(!valid.length){
-      const ph = document.createElement("div");
-      ph.textContent = "No valid coordinates to display.";
-      return ph;
-    }
     const container = document.createElement("div");
     container.className = "chat-map-container";
 
@@ -232,24 +230,64 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.innerHTML = `<img src="/static/max.png" alt="Maximize">`;
     container.appendChild(btn);
 
-    const centerLat = average(valid,"lat");
-    const centerLon = average(valid,"lon");
+    // Determine if multiple lakes
+    const isMultiLake = Array.isArray(coords) && coords.length>0 && coords[0].coordinates && Array.isArray(coords[0].coordinates);
+    // Gather all points for centering
+    let allPoints = [];
+    if(isMultiLake){
+      coords.forEach(lake => {
+        lake.coordinates.forEach(c => {
+          if(typeof c.lat==="number" && typeof c.lon==="number") allPoints.push(c);
+        });
+      });
+    } else {
+      allPoints = coords.filter(c=>c && typeof c.lat==="number" && typeof c.lon==="number");
+    }
+    if(!allPoints.length){
+      const ph = document.createElement("div");
+      ph.textContent = "No valid coordinates to display.";
+      return ph;
+    }
+    const centerLat = average(allPoints,"lat");
+    const centerLon = average(allPoints,"lon");
     const map = L.map(container).setView([centerLat,centerLon],14);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
-    const points = valid.map(c=>[c.lat,c.lon]);
-    L.polyline(points,{color:"blue",weight:2.5}).addTo(map);
-    valid.forEach((c,i)=>L.marker([c.lat,c.lon]).addTo(map).bindPopup(`Point ${i+1}`));
+
+    const colors = ['red','green','blue','orange','purple','cyan','magenta','yellow','brown'];
+    if(isMultiLake){
+      coords.forEach((lake,i) => {
+        const color = colors[i % colors.length];
+        const lakePoints = lake.coordinates.filter(c=>typeof c.lat==="number"&&typeof c.lon==="number");
+        const latlngs = lakePoints.map(c=>[c.lat,c.lon]);
+        // Draw polyline for each lake
+        L.polyline(latlngs,{color:color,weight:2.5}).addTo(map);
+        // Add colored markers
+        lakePoints.forEach((c,j) => {
+          L.circleMarker([c.lat,c.lon],{radius:6,fillColor:color,color:color,weight:1,fillOpacity:0.8})
+            .addTo(map)
+            .bindPopup(`${lake.lake_name} - Point ${j+1}`);
+        });
+      });
+    } else {
+      const latlngs = allPoints.map(c=>[c.lat,c.lon]);
+      L.polyline(latlngs,{color:'blue',weight:2.5}).addTo(map);
+      allPoints.forEach((c,i) => {
+        L.circleMarker([c.lat,c.lon],{radius:6,fillColor:'blue',color:'blue',weight:1,fillOpacity:0.8})
+          .addTo(map)
+          .bindPopup(`Point ${i+1}`);
+      });
+    }
 
     btn.addEventListener("click",()=>{
       const expanded = container.classList.toggle("expanded");
-      btn.firstChild.src  = expanded ? "/static/min.png" : "/static/max.png";
-      btn.firstChild.alt  = expanded ? "Minimize"       : "Maximize";
+      btn.firstChild.src = expanded? "/static/min.png" : "/static/max.png";
+      btn.firstChild.alt = expanded? "Minimize" : "Maximize";
       setTimeout(()=>map.invalidateSize(),300);
     });
     return container;
   }
 
-  const average = (arr,key)=>arr.reduce((s,c)=>s+c[key],0)/arr.length;
+  const average = (arr,key)=>arr.reduce((sum,c)=>sum+c[key],0)/arr.length;
 
   /* ---------- helpers ---------- */
   const escapeHTML = str=>str.replace(/&/g,"&amp;")
@@ -258,7 +296,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function uuidv4(){
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>
-      (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+      (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)
+    );
   }
 
   /* ========================================================
@@ -271,6 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
   toggleBtn.addEventListener("click",()=>{
     const light = document.body.classList.toggle("light-mode");
     toggleBtn.textContent = light ? "☀️" : "🌙";
-    localStorage.setItem("theme",light?"light":"dark");
+    localStorage.setItem("theme",light?"light":"dark ");
   });
+
 });
