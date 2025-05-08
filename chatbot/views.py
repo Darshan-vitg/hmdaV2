@@ -34,6 +34,7 @@ def handle_prompt(request):
     message = request.POST.get('message')
     images = request.FILES.getlist('image')
     image_provided = True if images else False
+    is_same_lake = request.POST.get("is_same_lake") == "on"
 
     # Get chat histories dictionary from session
     chat_histories = request.session.get('chat_histories', {})
@@ -44,7 +45,8 @@ def handle_prompt(request):
     payload = {
         'prompt_id': prompt_id,
         'message': message,
-        'chat_history': chat_history  # Send only this prompt's history
+        'chat_history': chat_history, # Send only this prompt's history
+        'is_same_lake': is_same_lake
     }
 
     # Initialize response_data in case there are no images
@@ -112,7 +114,8 @@ def handle_prompt(request):
     aggregated_image_urls = []
     combined_response_text = ""
 
-    for res in results:
+    print(results)
+    for idx, res in enumerate(results):
         if res.get('error'):
             combined_response_text += (
                 f"Error processing {res.get('image_name')}: {res.get('error')}"
@@ -120,21 +123,37 @@ def handle_prompt(request):
             continue
 
         valid_coords_raw = res.get("valid_coordinates", [])
+        lake_coords = []
+
         for coord in valid_coords_raw:
             if isinstance(coord, (list, tuple)) and len(coord) >= 2:
                 try:
                     lat_value = convert_to_float(coord[0])
                     lon_value = convert_to_float(coord[1])
-                    aggregated_valid_coordinates.append({"lat": lat_value, "lon": lon_value})
+                    coord_dict = {"lat": lat_value, "lon": lon_value}
+
+                    if is_same_lake:
+                        aggregated_valid_coordinates.append(coord_dict)
+                    else:
+                        lake_coords.append(coord_dict)
+
+
                 except Exception:
                     aggregated_invalid_coordinates.append(coord)
+
             elif isinstance(coord, dict):
                 raw_lat = coord.get("lat") if coord.get("lat") is not None else coord.get("latitude")
                 raw_lon = coord.get("lon") if coord.get("lon") is not None else coord.get("longitude")
                 try:
                     lat_value = convert_to_float(raw_lat)
                     lon_value = convert_to_float(raw_lon)
-                    aggregated_valid_coordinates.append({"lat": lat_value, "lon": lon_value})
+                    coord_dict = {"lat": lat_value, "lon": lon_value}
+
+                    if is_same_lake:
+                        aggregated_valid_coordinates.append(coord_dict)
+                    else:
+                        lake_coords.append(coord_dict)
+
                 except Exception:
                     aggregated_invalid_coordinates.append(coord)
             else:
@@ -143,6 +162,12 @@ def handle_prompt(request):
         more_invalid = res.get("invalid_coordinates", [])
         if more_invalid:
             aggregated_invalid_coordinates.extend(more_invalid)
+
+        if not is_same_lake and lake_coords:
+            aggregated_valid_coordinates.append({
+                "lake_name": f"Lake {idx + 1}",
+                "coordinates": lake_coords
+            })
 
         if "image_urls" in res and isinstance(res["image_urls"], list):
             for url in res["image_urls"]:
@@ -156,14 +181,17 @@ def handle_prompt(request):
     if image_provided and not aggregated_valid_coordinates:
         combined_response_text += "No valid coordinates found."
 
+
+    #print(aggregated_invalid_coordinates)
+
     if aggregated_invalid_coordinates:
         table_html = """
-        <br/>
-        <table border="1" style="border-collapse: collapse; color: white; font-size: 0.9rem;">
+        <table border="1" style="border-collapse: collapse; font-size: 0.9rem;">
             <tr style="background-color: #2c2d3a;"><th>Latitude</th><th>Longitude</th></tr>
         """
 
         for ic in aggregated_invalid_coordinates:
+
             if isinstance(ic, dict):
                 lat_val = ic.get("lat") if ic.get("lat") is not None else ic.get('input', {}).get("latitude", "")
                 lon_val = ic.get("lon") if ic.get("lon") is not None else ic.get('input', {}).get("longitude", "")
@@ -176,6 +204,7 @@ def handle_prompt(request):
                 f"<tr><td style='padding: 4px;'>{lat_val}</td>"
                 f"<td style='padding: 4px;'>{lon_val}</td></tr>"
             )
+
         table_html += "</table>"
         combined_response_text += "Invalid coordinates:" + table_html
 
@@ -184,7 +213,7 @@ def handle_prompt(request):
         chat_histories[prompt_id] = response_data['chat_history']
         request.session['chat_histories'] = chat_histories
         request.session.modified = True
-
+    print(aggregated_valid_coordinates)
     return JsonResponse({
         "response": combined_response_text,
         "coordinates": aggregated_valid_coordinates,
