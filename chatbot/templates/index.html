@@ -1,0 +1,67 @@
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HMDA</title>
+  {% load static %}
+<link rel="stylesheet" href="{% static 'styles.css' %}" />
+  <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+
+  <!-- Leaflet CSS (for maps) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <div class="main-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        HMDA
+
+        <button id="theme-toggle" aria-label="Toggle color theme">
+            🌙
+        </button>
+      </div>
+      <ul id="prompt-list"></ul>
+      <button id="new-prompt">+ New Prompt</button>
+    </aside>
+
+    <div class="chat-container">
+      <!-- Single container for all chat items -->
+      <div id="chat-box" class="chat-box"></div>
+
+      <form id="chat-form" enctype="multipart/form-data">
+  <div class="input-group">
+    <input type="file" id="image" name="image" class="file-input" multiple />
+    <input type="text" id="message" name="message"
+           placeholder="Type your message..." class="text-input" />
+    <input type="hidden" id="prompt_id" name="prompt_id" />
+
+    <!-- ← replace this:
+      <label style="margin-left: 10px; display: flex; align-items: center; gap: 6px; color: var(--txt-main);">
+        <input type="checkbox" id="is_same_lake" name="is_same_lake" checked />
+        Same lake for all images
+      </label>
+    -->
+
+    <div class="toggle-group">
+      <label class="switch">
+        <input type="checkbox" id="is_same_lake" name="is_same_lake" checked>
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label">Same lake for all images</span>
+    </div>
+
+    <button type="submit" class="send-btn">Send</button>
+  </div>
+</form>
+    </div>
+  </div>
+<div id="chat-log"></div>
+
+  <!-- Leaflet JS (for maps) -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="/static/script.js"></script>
+
+
+</body>
+</html>
