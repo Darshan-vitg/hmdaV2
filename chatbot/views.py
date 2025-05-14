@@ -86,7 +86,7 @@ def handle_prompt(request):
             lresp = requests.post(
                 LAMBDA_API_URL,
                 json=img_payload,
-                timeout=30
+                timeout=120
             )
             lresp.raise_for_status()
             ct = lresp.headers.get('Content-Type', '')
