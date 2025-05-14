@@ -102,7 +102,7 @@ def handle_prompt(request):
         return result
 
     results = list(ThreadPoolExecutor().map(process_image, images))
-    print(results)
+    #print(results)
     aggregated_valid    = []
     aggregated_invalid  = []
     aggregated_urls     = []
@@ -179,10 +179,10 @@ def handle_prompt(request):
         tbl += "</table>"
         combined_text += "Invalid coordinates:" + tbl
 
-    print("aggregated_valid",aggregated_valid)
+    #print("aggregated_valid",aggregated_valid)
 
     # return JSON
-    print(aggregated_urls)
+    #print(aggregated_urls)
     return JsonResponse({
         "response": combined_text,
         "coordinates": aggregated_valid,

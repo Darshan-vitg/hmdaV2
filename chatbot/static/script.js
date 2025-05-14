@@ -161,10 +161,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     csvBtn.addEventListener("click", () => {
       if (coords?.length) {
-        const lines = ["Latitude,Longitude"];
+        const lines = ["Latitude,Longitude,Lake Name"];
         coords.forEach(lake => {
           if (lake.coordinates) {
-            lake.coordinates.forEach(c => lines.push(`${c.lat},${c.lon}`));
+            lake.coordinates.forEach(c => lines.push(`${c.lat},${c.lon},${lake.lake_name}`));
           } else {
             lines.push(`${lake.lat},${lake.lon}`);
           }
